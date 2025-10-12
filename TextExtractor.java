@@ -31,7 +31,7 @@ public class TextExtractor {
                 // fallback to OCR when integrated
                 return ocrBridge.ocr(file);
             } else {
-                return "[Scanned PDF detected, OCR not yet enabled]";
+                return "[Scanned PDF detected, OCR bridge not available]";
             }
         } else if (name.endsWith(".txt")) {
             try {
