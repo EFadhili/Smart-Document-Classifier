@@ -13,7 +13,7 @@ public class SummarizationBridge {
     private static final Gson GSON = new Gson();
     private final String pythonExe;
     private final String scriptPath;
-    private final String googleCredentialsPath; // optional: pass path to service account JSON
+    private final String googleCredentialsPath;
 
     public SummarizationBridge(String pythonExe, String scriptPath) {
         this(pythonExe, scriptPath, null);
@@ -34,7 +34,7 @@ public class SummarizationBridge {
     }
 
     /**
-     * Summarize text, optionally specifying a model id (e.g. "models/gemini-2.5-flash"),
+     * Summarize text
      * and a timeout (seconds) for the Python process.
      */
     public String summarize(String text, String model, long timeoutSeconds) {
@@ -45,13 +45,12 @@ public class SummarizationBridge {
             System.out.println("🔍 [SummarizationBridge] Python Exec: " + pythonExe);
             System.out.println("🔍 [SummarizationBridge] Script Path: " + scriptPath);
 
-            // Propagate env var for Google credentials if provided
             if (googleCredentialsPath != null && !googleCredentialsPath.isEmpty()) {
                 pb.environment().put("GOOGLE_APPLICATION_CREDENTIALS", googleCredentialsPath);
                 System.out.println("🔍 [SummarizationBridge] Set GOOGLE_APPLICATION_CREDENTIALS -> " + googleCredentialsPath);
             }
 
-            // Merge stderr into stdout so we capture all output
+            // Merge stderr into stdout so as to capture all output
             pb.redirectErrorStream(true);
             process = pb.start();
 
@@ -121,3 +120,4 @@ public class SummarizationBridge {
         }
     }
 }
+
