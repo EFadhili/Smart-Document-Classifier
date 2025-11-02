@@ -32,7 +32,7 @@ public class MainWindow extends JFrame {
     private final JButton uploadButton = new JButton("Upload File");
     private final JButton saveButton = new JButton("Save Output");
 
-    // Bridges / runners (update these paths to match your environment)
+    // Bridges / runners 
     private final String pythonExe = "C:\\Users\\EFM\\IdeaProjects\\Legal_Project\\python\\.venv\\Scripts\\python.exe";
     private final String preprocessScript = "C:\\Users\\EFM\\IdeaProjects\\Legal_Project\\python\\preprocess.py";
     private final String classifierScript = "C:\\Users\\EFM\\IdeaProjects\\Legal_Project\\python\\evaluate_single.py";
@@ -130,11 +130,8 @@ public class MainWindow extends JFrame {
         setVisible(true);
 
         try {
-            // Option 1: explicit project path (recommended while debugging)
             String projectRoot = "C:\\Users\\EFM\\IdeaProjects\\Legal_Project";
 
-            // Option 2 (alternative): use working directory
-            // String projectRoot = System.getProperty("user.dir");
 
             // fallback if somehow null or empty
             if (projectRoot == null || projectRoot.trim().isEmpty()) {
@@ -276,7 +273,6 @@ public class MainWindow extends JFrame {
         double conf = getClientProperty("last_confidence") != null ? (double) getClientProperty("last_confidence") : 0.0;
         String summary = getClientProperty("last_summary") != null ? getClientProperty("last_summary").toString() : "";
 
-        // If StorageManager is available, try to persist there
         if (storage != null) {
             try {
                 // 1) store original uploaded file (this.currentFile must be non-null)
@@ -360,3 +356,4 @@ public class MainWindow extends JFrame {
         SwingUtilities.invokeLater(() -> new MainWindow());
     }
 }
+
