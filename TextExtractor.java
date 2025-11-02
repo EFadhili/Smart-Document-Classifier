@@ -13,7 +13,6 @@ public class TextExtractor {
 
     private final OcrBridge ocrBridge;  // placeholder for OCR
 
-    // Constructor allows injecting OCR bridge (null if unavailable now)
     public TextExtractor(OcrBridge ocrBridge) {
         this.ocrBridge = ocrBridge;
     }
@@ -95,3 +94,4 @@ public class TextExtractor {
                 || name.endsWith(".tif");
     }
 }
+
