@@ -36,7 +36,6 @@ public class IntegratedPipelineTest {
         System.out.println("🔹 Preprocessed output: " + processedJson + "\n");
 
         // === STEP 6: Classification Stage (Python model) ===
-        // For now we’ll use a small Python helper to classify; you can replace later with integrated version
         Map<String, Object> classifyPayload = new HashMap<>();
         classifyPayload.put("mode", "classify");
         classifyPayload.put("text", rawText);
@@ -48,3 +47,4 @@ public class IntegratedPipelineTest {
         System.out.println("✅ Pipeline test completed successfully.");
     }
 }
+
