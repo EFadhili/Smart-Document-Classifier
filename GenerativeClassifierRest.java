@@ -7,14 +7,14 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.regex.Pattern;
 
-/** Robust Gemini text-classifier via REST (uses user OAuth access token). */
+
 public class GenerativeClassifierRest {
-    private final String modelId; // e.g. "models/gemini-2.5-flash"
+    private final String modelId; 
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(20)).build();
     private static final Gson GSON = new Gson();
 
-    public GenerativeClassifierRest(String model) { // normalize: strip leading "models/" if present
+    public GenerativeClassifierRest(String model) { 
         if (model == null) throw new IllegalArgumentException("model is required");
         this.modelId = model.startsWith("models/") ? model.substring("models/".length()) : model;
     }
@@ -86,7 +86,7 @@ public class GenerativeClassifierRest {
                 String reason = asString(obj, "reason");
                 // sanity-check label against allowed set
                 if (label != null && !containsIgnoreCase(allowedLabels, label)) {
-                    // try to coerce by matching allowed labels inside returned label
+                  
                     String coerced = firstAllowedInText(allowedLabels, label);
                     if (coerced != null) label = coerced;
                 }
@@ -158,3 +158,4 @@ public class GenerativeClassifierRest {
         }
     }
 }
+
