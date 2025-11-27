@@ -1,0 +1,7 @@
+openai>=1.40.0        # For GPT-4o-mini API
+google-cloud-vision   # For OCR
+scikit-learn>=1.3.0   # For Random Forest, preprocessing
+joblib>=1.3.0         # For saving/loading models
+python-dotenv>=1.0.0  # For managing API keys
+pdf2image>=1.17.0     # For converting PDFs into images (if needed)
+pillow>=10.0.0        # For image handling
