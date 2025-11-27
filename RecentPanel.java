@@ -5,96 +5,124 @@ import org.example.storage.StorageManager;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.nio.file.*;
-import java.sql.Connection;
-import java.sql.DriverManager;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.*;
+import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
- * Displays recent files found under data/inputs and optionally reads DB for metadata.
+ * Displays recent files for the signed-in user.
+ * Expects per-user layout: data/inputs/<ownerId>/<yyyy-mm-dd>/<filename>
+ * Uses StorageManager.listStoredInputsByOwner(ownerId) to populate.
  */
 public class RecentPanel extends JPanel {
     private final DefaultTableModel model;
     private final JTable table;
 
+    // Full list (all rows from storage for current owner)
+    private List<Path> allPaths = new ArrayList<>();
+    // Currently displayed list after filtering/sorting
+    private List<Path> shownPaths = new ArrayList<>();
+
     public RecentPanel() {
-        setLayout(new BorderLayout(6,6));
-        model = new DefaultTableModel(new String[] {"Filename","Label","Confidence","Date"}, 0) {
-            @Override public boolean isCellEditable(int r,int c){return false;}
+        setLayout(new BorderLayout(6, 6));
+        model = new DefaultTableModel(new String[] {"Filename", "Label", "Confidence", "Date"}, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         table = new JTable(model);
         table.setFillsViewportHeight(true);
         add(new JScrollPane(table), BorderLayout.CENTER);
     }
 
-    public void refresh(StorageManager storage) {
+    /**
+     * Load entries for the given owner. If ownerId is null, show nothing (or change to "show all" if you prefer).
+     */
+    public void refresh(StorageManager storage, String ownerId) {
         model.setRowCount(0);
+        allPaths.clear();
+        shownPaths.clear();
+
         if (storage == null) return;
         try {
-            Path inputs = Paths.get(storage.getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getParent().resolve("data").resolve("inputs");
-            // Fallback: read storage.getStorageRoot? (we keep it simple: scan storage's base dir)
-        } catch (Exception ignored) {}
-
-        // Simpler approach: ask storage to scan files or read DB; here we scan data/inputs in working dir
-        try {
-            Path inputsRoot = Paths.get(System.getProperty("user.dir")).resolve("data").resolve("inputs");
-            if (!Files.exists(inputsRoot)) return;
-            List<Path> files = new ArrayList<>();
-            try (DirectoryStream<Path> days = Files.newDirectoryStream(inputsRoot)) {
-                for (Path d : days) {
-                    if (!Files.isDirectory(d)) continue;
-                    try (DirectoryStream<Path> fs = Files.newDirectoryStream(d)) {
-                        for (Path f : fs) if (Files.isRegularFile(f)) files.add(f);
-                    }
+            // Ask storage for the user’s stored input paths
+            List<Path> paths = storage.listStoredInputsByOwner(ownerId);
+            // Sort newest first by file modified time
+            paths.sort((a, b) -> {
+                try {
+                    long mb = Files.getLastModifiedTime(b).toMillis();
+                    long ma = Files.getLastModifiedTime(a).toMillis();
+                    return Long.compare(mb, ma);
+                } catch (Exception e) {
+                    return 0;
                 }
-            }
-            files.sort((a,b)->{
-                try { return Long.compare(Files.getLastModifiedTime(b).toMillis(), Files.getLastModifiedTime(a).toMillis()); }
-                catch (Exception e) { return 0; }
             });
-            for (Path f : files) {
-                model.addRow(new Object[] { f.getFileName().toString(), "-", "-", Files.getLastModifiedTime(f).toString() });
+
+            allPaths.addAll(paths);
+            shownPaths.addAll(paths);
+
+            // Populate table
+            for (Path p : shownPaths) {
+                String filename = p.getFileName().toString();
+                String label = "-";       // optional: look up from DB if you add a method
+                String conf = "-";        // optional: look up from DB if you add a method
+                String date = "";
+                try { date = Files.getLastModifiedTime(p).toString(); } catch (Exception ignored) {}
+
+                model.addRow(new Object[]{ filename, label, conf, date });
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void filter(String q) {
-        // quick and simple: rebuild with filter (in practice keep a cached list)
-        // For brevity not implemented here; call refresh then remove non-matching rows.
+    /**
+     * Simple filename filter (case-insensitive). Call with empty string to clear filter.
+     */
+    public void filter(String query) {
+        String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        model.setRowCount(0);
+        shownPaths.clear();
+
+        if (q.isEmpty()) {
+            shownPaths.addAll(allPaths);
+        } else {
+            for (Path p : allPaths) {
+                if (p.getFileName().toString().toLowerCase(Locale.ROOT).contains(q)) {
+                    shownPaths.add(p);
+                }
+            }
+        }
+
+        // (Re)fill rows
+        for (Path p : shownPaths) {
+            String filename = p.getFileName().toString();
+            String label = "-";
+            String conf = "-";
+            String date = "";
+            try { date = Files.getLastModifiedTime(p).toString(); } catch (Exception ignored) {}
+            model.addRow(new Object[]{ filename, label, conf, date });
+        }
     }
 
     public void onSelect(Consumer<Path> consumer) {
         table.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && table.getSelectedRow() >= 0) {
-                String fileName = (String) model.getValueAt(table.getSelectedRow(), 0);
-                // find corresponding Path by scanning - for simplicity we re-scan dir
-                try {
-                    Path inputsRoot = Paths.get(System.getProperty("user.dir")).resolve("data").resolve("inputs");
-                    for (Path day : Files.newDirectoryStream(inputsRoot)) {
-                        Path candidate = day.resolve(fileName);
-                        if (Files.exists(candidate)) { consumer.accept(candidate); break; }
-                    }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
+            if (!e.getValueIsAdjusting()) {
+                int idx = table.getSelectedRow();
+                if (idx >= 0 && idx < shownPaths.size()) {
+                    consumer.accept(shownPaths.get(idx));
                 }
             }
         });
     }
 
     public Path getSelected() {
-        if (table.getSelectedRow() < 0) return null;
-        String fileName = (String) model.getValueAt(table.getSelectedRow(), 0);
-        try {
-            Path inputsRoot = Paths.get(System.getProperty("user.dir")).resolve("data").resolve("inputs");
-            for (Path day : Files.newDirectoryStream(inputsRoot)) {
-                Path candidate = day.resolve(fileName);
-                if (Files.exists(candidate)) return candidate;
-            }
-        } catch (Exception ignored) {}
+        int idx = table.getSelectedRow();
+        if (idx >= 0 && idx < shownPaths.size()) {
+            return shownPaths.get(idx);
+        }
         return null;
     }
 }
