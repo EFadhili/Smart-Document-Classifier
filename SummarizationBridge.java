@@ -8,36 +8,55 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.Objects;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import org.example.auth.TokenManager;
+
 
 public class SummarizationBridge {
     private static final Gson GSON = new Gson();
     private final String pythonExe;
     private final String scriptPath;
-    private final String googleCredentialsPath;
+    private final String googleCredentialsPath; // optional: pass path to service account JSON
 
     public SummarizationBridge(String pythonExe, String scriptPath) {
         this(pythonExe, scriptPath, null);
     }
 
     public SummarizationBridge(String pythonExe, String scriptPath, String googleCredentialsPath) {
-        this.pythonExe = pythonExe;
-        this.scriptPath = scriptPath;
+        this.pythonExe = Objects.requireNonNull(pythonExe, "pythonExe required");
+        this.scriptPath = Objects.requireNonNull(scriptPath, "scriptPath required");
         this.googleCredentialsPath = googleCredentialsPath;
     }
 
+    // inside SummarizationBridge (or create a new class SummarizationRestBridge)
+
+    public String getPythonExe() { return pythonExe; }
+    public String getScriptPath() { return scriptPath; }
+
     /**
-     * Summarize text using the underlying Python script.
-     * If model is null, the Python script's default model is used.
+     * Backwards compatible methods
      */
     public String summarize(String text) {
-        return summarize(text, null, 60); // default 60s timeout
+        return summarize(text, null, 60, null);
+    }
+
+    public String summarize(String text, String model, long timeoutSeconds) {
+        return summarize(text, model, timeoutSeconds, null);
     }
 
     /**
-     * Summarize text
-     * and a timeout (seconds) for the Python process.
+     * New overload: accepts an OAuth2 access token (Bearer) which will be passed to the Python process
+     * as environment variable GOOGLE_OAUTH_ACCESS_TOKEN. If token is null, behavior is unchanged.
      */
-    public String summarize(String text, String model, long timeoutSeconds) {
+    public String summarize(String text, String model, long timeoutSeconds, String accessToken) {
         Process process = null;
         try {
             ProcessBuilder pb = new ProcessBuilder(pythonExe, scriptPath);
@@ -45,12 +64,19 @@ public class SummarizationBridge {
             System.out.println("🔍 [SummarizationBridge] Python Exec: " + pythonExe);
             System.out.println("🔍 [SummarizationBridge] Script Path: " + scriptPath);
 
+            // Propagate env var for Google credentials if provided (service account JSON)
             if (googleCredentialsPath != null && !googleCredentialsPath.isEmpty()) {
                 pb.environment().put("GOOGLE_APPLICATION_CREDENTIALS", googleCredentialsPath);
                 System.out.println("🔍 [SummarizationBridge] Set GOOGLE_APPLICATION_CREDENTIALS -> " + googleCredentialsPath);
             }
 
-            // Merge stderr into stdout so as to capture all output
+            // If an OAuth access token is provided, set it so Python can use it
+            if (accessToken != null && !accessToken.isBlank()) {
+                pb.environment().put("GOOGLE_OAUTH_ACCESS_TOKEN", accessToken);
+                System.out.println("🔍 [SummarizationBridge] Set GOOGLE_OAUTH_ACCESS_TOKEN (token length: " + accessToken.length() + ")");
+            }
+
+            // Merge stderr into stdout so we capture all output
             pb.redirectErrorStream(true);
             process = pb.start();
 
