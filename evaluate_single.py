@@ -4,9 +4,9 @@ import sys, json, joblib, os
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 
 # Load the trained components
-vectorizer = joblib.load(os.path.join("C:/Users/EFM/IdeaProjects/Legal_Project/models/tfidf_vectorizer.pkl"))
-selector = joblib.load(os.path.join("C:/Users/EFM/IdeaProjects/Legal_Project/models/feature_selector.pkl"))
-model = joblib.load(os.path.join("C:/Users/EFM/IdeaProjects/Legal_Project/models/svm_calibrated_model.pkl"))
+vectorizer = joblib.load(os.path.join("C:/Users/EFM/IdeaProjects/Backup/Legal_Project/models/tfidf_vectorizer.pkl"))
+selector = joblib.load(os.path.join("C:/Users/EFM/IdeaProjects/Backup/Legal_Project/models/feature_selector.pkl"))
+model = joblib.load(os.path.join("C:/Users/EFM/IdeaProjects/Backup/Legal_Project/models/svm_calibrated_model.pkl"))
 
 if __name__ == "__main__":
     payload = json.loads(sys.stdin.read())

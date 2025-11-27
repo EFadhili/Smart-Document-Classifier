@@ -27,9 +27,9 @@ from sklearn.metrics import classification_report, accuracy_score, confusion_mat
 import matplotlib.pyplot as plt
 
 # ---------------- CONFIG ----------------
-BASE_DIR = r"D:\dataset"                    # adapt to your dataset root
+BASE_DIR = r"D:\dataset"
 CSV_PATH = r"D:\Dataset Label\labels.csv"   # CSV with filename (relative to BASE_DIR) and label columns
-MODEL_DIR = r"C:\Users\EFM\IdeaProjects\Legal_Project\models"  # where to store model & plots
+MODEL_DIR = r"C:\Users\EFM\IdeaProjects\Backup\Legal_Project\models"  # where to store model & plots
 RANDOM_STATE = 42
 # ----------------------------------------
 
